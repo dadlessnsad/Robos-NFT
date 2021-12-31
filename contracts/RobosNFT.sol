@@ -30,7 +30,8 @@ contract RobosNFT is ERC721Namable, Ownable {
     
     struct Robo {
         uint8 generation;
-        uint256 bornAt;
+        // uint256 bornAt;
+        //could be uint256 bornAt = block.timestamp; to get date of birth
     }
 
     enum Generation {
@@ -53,6 +54,7 @@ contract RobosNFT is ERC721Namable, Ownable {
     bool public breeding = false;
 
     //Public Addresses
+    address public constant burn = address(0x000000000000000000000000000000000000dEaD);
     address payable public xurgi;
     address payable public dev = payable(0x59992E3626D6d5471D676f2de5A6e6dcF0e06De7);
     //Whitelist Addresses
@@ -66,10 +68,10 @@ contract RobosNFT is ERC721Namable, Ownable {
 
     //Robo NFT Minting vars
     uint256 public mintCost;
-    uint256 public BREED_PRICE;
+    uint256 public BREED_PRICE = 20 ether;
     uint8 public bulkBuyLimit;
     //Whitelist NFT mint max amount
-    uint8 public nftPerAddressLimit;
+    uint8 public nftPerAddressLimit = 4;
 
 
     //Set Yeild token as RoboToken
@@ -83,11 +85,12 @@ contract RobosNFT is ERC721Namable, Ownable {
     mapping(address => uint256) public addressMintedBalance;
     //Tracks TokenId Breeding history
     mapping(uint256 => BreedingHistory) public breedingHistory;
+    mapping(uint256 => uint256) public robosLastBreeding;
     //Maps Robos Structs
     mapping(uint256 => Robo) public roboz;
     //Tracks Balance of Genesis Robos
-    //@TODO CHECK 
     mapping(address => uint256) public balanceOG;
+    mapping(address => uint256) public jrCount;
 
 /*/////////////////////////////////////////////////////////////
                         Events
@@ -107,7 +110,7 @@ contract RobosNFT is ERC721Namable, Ownable {
             xurgi == _msgSender();
             setBaseURI(_initBaseURI);
             mintCost = 0.1 ether;
-            bulkBuyLimit = 10;
+            bulkBuyLimit = 8;
             _preMint(25);
         }
 
@@ -122,7 +125,7 @@ contract RobosNFT is ERC721Namable, Ownable {
     function _preMint(uint256 amount) internal onlyOwner {
         robosSupply = (robosSupply + amount);
         for (uint256 i = 0; i < amount; i++) {
-            addressMintedBalance[msg.sender]++;
+            balanceOG[msg.sender]++;
             _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
         }
     }
@@ -154,15 +157,109 @@ contract RobosNFT is ERC721Namable, Ownable {
 /////////////////////////////////////////////////////////////*/
     
     function mintGenesisRobo(uint256 amount) public payable {
+        require(onlyWhitelisted == false, "Sale not public");
+        require(amount <= bulkBuyLimit, "mint amount exceded limit");
+        require((amount + robosSupply) <= roboMaxSupply);
 
+        uint256 totalMintCost = (mintCost * amount);
+        require(totalMintCost <= msg.value, "incorrect value sent");
+
+        (bool success, ) = payable(dev).call{value: totalMintCost * 20 / 100}("");
+        require(success);
+
+        (bool transferToOwner, ) = xurgi.call{value: totalMintCost * 80 / 100}("");
+        require(
+            transferToOwner, "Address: unable to send value"
+        );
+        
+        robosSupply = robosSupply + amount;
+
+        for (uint256 i = 0; i < amount; i++) {
+            yieldToken.updateRewardOnMint(msg.sender, 1);
+            robosSupply = balanceOG[msg.sender]++;
+            _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
+        }
     }
-
+\
     function whitelistMint(uint256 amount) public payable {
+        require(onlyWhitelisted == true, "Presale over");
+        require(isWhitelisted(msg.sender), "user not whitelisted");
+                
+        uint256 ownerMintedCount = addressMintedBalance[msg.sender];
+        require(ownerMintedCount + amount <= nftPerAddressLimit, "max Witches per address for presale");
 
+        require(amount <= bulkBuyLimit, "mint amount exceded limit");
+        require((amount + robosSupply) <= roboMaxSupply);
+
+        uint256 totalMintCost = (mintCost * amount);
+        require(totalMintCost <= msg.value, "incorrect value sent");
+
+        (bool success, ) = payable(dev).call{value: totalMintCost * 20 / 100}("");
+        require(success);
+
+        (bool transferToOwner, ) = payable(xurgi).call{value: totalMintCost * 80 / 100}("");
+        require(
+            transferToOwner, "Address: unable to send value"
+        );
+        
+        robosSupply = robosSupply + amount;
+
+        for (uint256 i = 0; i < amount; i++) {
+            yieldToken.updateRewardOnMint(msg.sender, 1);
+            balanceOG[msg.sender]++;
+            addressMintedBalance[msg.sender]++;
+            _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
+        }
     }
 
     function _mintByGeneration(address to, Generation generation) private {
+        uint8 _generation = uint8(generation);
+        _tokenIdTracker.increment();
+        uint256 tokenId = _tokenIdTracker.current();
+        roboz[tokenId].generation = _generation;
 
+        _safeMint(to, tokenId);
+
+        emit TokenMinted(tokenId, roboz[tokenId].generation);
+    }
+
+    function breedRoboJr(uint256 tokenIdA,uint256 tokenIdB) external payable {
+        require(breeding == true, "Breeding disabled");
+        require(roboJrSupply <= roboJrMaxSupply, "supply exceeded");
+
+        //requires msgSender to own to tokenIds 
+        require(ownerOf(tokenIdA) == msg.sender, "not owner of tokenId");
+        require(ownerOf(tokenIdB) == msg.sender, "not owner of tokenId");
+        //requires tokenIds to be a GENESIS_ROBO
+        require(roboz[tokenIdA].generation  == uint8(Generation.GENESIS_ROBO), "Can only breed Genesis Robos");
+        require(roboz[tokenIdB].generation  == uint8(Generation.GENESIS_ROBO), "Can only breed Genesis Robos");
+
+        require(robosLastBreeding[tokenIdA] + 7 days < block.timestamp, "should wait 7 days from last fuck");
+        require(robosLastBreeding[tokenIdB] + 7 days < block.timestamp, "should wait 7 days from last fuck");
+
+        require(yieldToken.balanceOf(msg.sender) >= BREED_PRICE);
+        
+        yieldToken.burn(msg.sender, BREED_PRICE);
+    
+        roboJrSupply++;
+
+        return _breed(tokenIdA, tokenIdB);
+    }
+
+    function _breed(uint256 tokenIdA, uint256 tokenIdB) private {
+        robosLastBreeding[tokenIdA] = block.timestamp;
+        robosLastBreeding[tokenIdB] = block.timestamp;
+
+        breedingHistory[tokenIdA].tokenId = tokenIdA;
+        breedingHistory[tokenIdA].time = block.timestamp;
+
+        breedingHistory[tokenIdB].tokenId = tokenIdB;
+        breedingHistory[tokenIdB].time = block.timestamp;
+
+    
+        jrCount[msg.sender]++;
+        _mintByGeneration(_msgSender(), Generation.ROBO_JR);
+        
     }
 
     function changeName(uint256 tokenId, string memory newName) public override {
@@ -176,7 +273,8 @@ contract RobosNFT is ERC721Namable, Ownable {
     }
 
     function getReward() external {
-
+        yieldToken.updateReward(msg.sender, address(0), 0);
+        yieldToken.getReward(msg.sender);
     }
 
     function transferFrom(address from, address to, uint256 tokenId) public override {
@@ -202,13 +300,13 @@ contract RobosNFT is ERC721Namable, Ownable {
                   Public view Functions
 /////////////////////////////////////////////////////////////*/
 
-    function  isWhitelisted(address _user) public view returns(bool) {
+    function  isWhitelisted(address _user) public view returns (bool) {
         for(uint i = 0; i < whitelistedAddresses.length; i++) {
             if (whitelistedAddresses[i] == _user) {
                 return true;
             }
-            return false;
         }
+        return false;
     }
 
     function generationOf(uint256 tokenId) public view returns(uint8 generation) {
@@ -219,19 +317,19 @@ contract RobosNFT is ERC721Namable, Ownable {
         return _tokenIdTracker.current();
     }
 
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory tokenId = toString(tokenId);        
-        string memory _baseURI = _baseURI();
+    function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
+        require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
+        string memory tokenId = toString(_tokenId);
+        string memory currentBaseURI = _baseURI();
         string memory  generationPath = "/";
-        uint8 generation = roboz[tokenId].generation;
+        uint8 generation = roboz[_tokenId].generation;
         if (generation == 0) {
-            generationPath == "genesisRobo/";
+            generationPath = "genesisRobo/";
         } else if (generation == 1) {
-            generationPath == "roboJr/";
+            generationPath = "roboJr/";
         }
-        return(abi.encodePacked(_baseURI, generationPath, tokenId, baseExtension));
-    }
+        return bytes(currentBaseURI).length > 0
+        ? string(abi.encodePacked(currentBaseURI, generationPath, tokenId,baseExtension)) : "";    }
         
 
 /*/////////////////////////////////////////////////////////////
@@ -242,6 +340,18 @@ contract RobosNFT is ERC721Namable, Ownable {
         mintCost = newMintCost;
 
         emit RobosPriceChanged(newMintCost);
+    }
+
+    function setTxLimit(uint8 _bulkBuyLimit) external onlyOwner {
+        bulkBuyLimit = _bulkBuyLimit;
+    }
+
+    function enableBreeding() external onlyOwner {
+        breeding = true;
+    }
+    
+    function disableBreeding() external onlyOwner {
+        breeding = false;
     }
 
     function changeNamePrice(uint256 _price) external onlyOwner {

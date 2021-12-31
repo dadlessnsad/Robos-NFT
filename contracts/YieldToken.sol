@@ -2,12 +2,14 @@
 pragma solidity ^0.8.0;
 
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+// import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+// import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {ERC20} from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import {IRobos} from "./Interface/IRobos.sol";
 
 
-contract YieldToken is ERC20("Robo Token", "RBTK") {
-
+contract YieldToken is ERC20("Robo Token", "RBTK", 18) {
+    // using SafeMath for uint256;
 
 /*/////////////////////////////////////////////////////////////
                       Public Vars
@@ -19,7 +21,7 @@ contract YieldToken is ERC20("Robo Token", "RBTK") {
     uint256 constant public JR_BASE_RATE = 1 ether;
 
     //INITAL_ISSUANCE off of mintint a ROBO
-    uint256 constant public INITAL_ISSUANCE = 5 ether; 
+    uint256 constant public INITAL_ISSUANCE = 10 ether; 
     /// End time for Base rate yeild token (UNIX timestamp)
     /// END time = Sun Jan 30 2033 01:01:01 GMT-0700 (Mountain Standard Time) - in 11 years
     uint256 constant public END = 1959062461; 
@@ -62,77 +64,97 @@ contract YieldToken is ERC20("Robo Token", "RBTK") {
 /////////////////////////////////////////////////////////////*/
 
 
-    // function updateRewardOnMint(address _user, uint256 _amount) external {
-    //   require(msg.sender == address(robosContract), "Cant call this");
-    //   uint256 time = min(block.timestamp, END);
-    //   uint256 timerUser = lastUpdate[_user];
-    //   if (timerUser > 0 ) {
-    //       //@TODO
-    //   }
-    // }
+    function updateRewardOnMint(address _user, uint256 _amount) external {
+      require(msg.sender == address(robosContract), "Cant call this");
+      uint256 time = min(block.timestamp, END);
+      uint256 timerUser = lastUpdate[_user];
+      if (timerUser > 0 ) {
+          rewards[_user] = rewards[_user] + (robosContract.balanceOG(_user) * (BASE_RATE * (time - timerUser))) / 86400 + (_amount * INITAL_ISSUANCE);
+      } else {
+          rewards[_user] = rewards[_user] + (_amount * INITAL_ISSUANCE);
+          lastUpdate[_user] = time;
+      }
+    }
 
 
-    // function updageReward(address _from, address _to, uint256 _tokenId) external {
-    //   require(msg.sender == address(robosContract));
-    //   if (_tokenId < 5001) {
-    //     uint256 time = min(block.timestamp, END);
-    //     uint256 timerFrom = lastUpdate[_from];
+    function updateReward(address _from, address _to, uint256 _tokenId) external {
+        require(msg.sender == address(robosContract));
+
+        if (_tokenId < 5001) {
+            uint256 time = min(block.timestamp, END);
+            uint256 timerFrom = lastUpdate[_from];
+
+            if (timerFrom > 0) {
+                rewards[_from] += robosContract.balanceOG(_from) * (BASE_RATE * (time - timerFrom)) / 86400;
+            }
+
+            if (timerFrom != END) {
+                lastUpdate[_from] = time;
+            } 
+
+            if (_to != address(0)) {
+                uint256 timerTo = lastUpdate[_to];
+
+                if (timerTo > 0) {
+                    rewards[_to] += robosContract.balanceOG(_to) * (BASE_RATE * (time - timerTo)) / 86400;
+                }
+
+                if (timerTo != END) {
+                    lastUpdate[_to] = time;
+                }
+            }
+
+        }
         
-    //     if (timerFrom > 0) 
-    //       rewards[_from] += robosContract.balanceOG(_from) * (BASE_RATE * (time - timerFrom)) / 86400;
-        
-    //     if (timerFrom != END) 
-    //       lastUpdate[_from] = time;
-        
-    //     if (_to != address(0)) {
-    //       uint256 timerTo = lastUpdate[_to];
-    //       if (timerTo > 0) 
-    //         rewards[_to] += robosContract.balanceOG(_to) * (BASE_RATE * (time - timerTo)) / 86400;
-    //       if (timerTo != END) 
-    //         lastUpdate[_to] = time;
-    //     }
-    //   }
-    //   if (_tokenId >= 5001) {
-    //     uint256 time = min(block.timestamp, END);
-    //     uint256 timerFrom = lastUpdate[_from];
-                
-    //     if (timerFrom > 0) 
-    //       rewards[_from] += robosContract.balanceOG(_from) * (JR_BASE_RATE * (time - timerFrom)) / 86400;
-        
-    //     if (timerFrom != END) 
-    //       lastUpdate[_from] = time;
+        if (_tokenId >= 5001) {
+            uint256 time = min(block.timestamp, END);
+            uint256 timerFrom = lastUpdate[_from];
 
-    //     if (_to != address(0)) {
-    //       uint256 timerTo = lastUpdate[_to];
-    //       if (timerTo > 0) 
-    //         rewards[_to] += robosContract.balanceOG(_to) * (JR_BASE_RATE * (time - timerTo)) / 86400;
-    //       if (timerTo != END) 
-    //         lastUpdate[_to] = time;
-    //     }
-    //   }
-    // }
+            if (timerFrom > 0) {
+                rewards[_from] += robosContract.jrCount(_from) * (JR_BASE_RATE * (time - timerFrom)) / 86400;
+            }
+
+            if (timerFrom != END) {
+                lastUpdate[_from] = time;
+            }
+
+            if (_to != address(0)) {
+                uint256 timerTo = lastUpdate[_to];
+
+                if (timerTo > 0) {
+                    rewards[_to] += robosContract.jrCount(_to) * (JR_BASE_RATE * (time - timerTo)) / 86400;
+                }
+
+                if (timerTo != END) {
+                    lastUpdate[_to] = time;
+                }
+            }
+
+        }
+    }
 
 
-    // function getReward(address _to) external {
-    //   require(msg.sender == address(robosContract));
-    //   uint256 reward = rewards[_to];
-    //   if (reward > 0) {
-    //     rewards[_to] = 0;
-    //     _mint(_to, reward);
-    //     emit RewardPaid(_to, reward);
-    //   }
-    // }
+    function getReward(address _to) external {
+      require(msg.sender == address(robosContract));
+      uint256 reward = rewards[_to];
+      if (reward > 0) {
+        rewards[_to] = 0;
+        _mint(_to, reward);
+        emit RewardPaid(_to, reward);
+      }
+    }
 
     function burn(address _from, uint256 _amount) external {
       require(msg.sender == address(robosContract));
       _burn(_from, _amount);
     }
 
-    // function getTotalClaimable(address _user) external view returns(uint256) {
-    //   uint256 time = min(block.timestamp, END);
-    //   uint256 pending = robosContract.balanceOG(_user) * ((BASE_RATE * (time - lastUpdate[_user])) / 86400);
-    //   return rewards[_user] + pending;
-    // }
+    function getTotalClaimable(address _user) external view returns(uint256) {
+        uint256 time = min(block.timestamp, END);
+        uint256 pending = robosContract.balanceOG(_user) * (BASE_RATE * (time - lastUpdate[_user])) / 86400;
+        uint256 jrPending = robosContract.jrCount(_user) * (JR_BASE_RATE * (time - lastUpdate[_user])) / 86400;
+        return rewards[_user] + (pending + jrPending);
+    }
 /*/////////////////////////////////////////////////////////////
                   onlyOwner Functions
 /////////////////////////////////////////////////////////////*/
