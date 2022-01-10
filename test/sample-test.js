@@ -62,25 +62,25 @@ describe("RobosNFT Test", function () {
             const setPause = await robos.pause(false);
             const setWhitelsit = await robos.whitelistUsers([addr1.address]);
 
-            const tx = await robos.connect(addr1).whitelistMint(4, {
-                value: ethers.utils.parseEther("0.4")
+            const tx = await robos.connect(addr1).whitelistMint(2, {
+                value: ethers.utils.parseEther("0.2")
             })
 
-            expect(await robos.balanceOG(addr1.address)).to.equal(4);
-            expect(await robos.robosSupply()).to.equal(64);
+            expect(await robos.balanceOG(addr1.address)).to.equal(2);
+            expect(await robos.robosSupply()).to.equal(62);
         })
 
-        it("Should only allow addr1 to whitelist mint 4 tokens", async function () {
+        it("Should only allow addr1 to whitelist mint 2 tokens", async function () {
             const setPause = await robos.pause(false);
             const setWhitelsit = await robos.whitelistUsers([addr1.address]);
             
-            const tx = await robos.connect(addr1).whitelistMint(4, {
-                value: ethers.utils.parseEther("0.4")
+            const tx = await robos.connect(addr1).whitelistMint(2, {
+                value: ethers.utils.parseEther("0.2")
             })
 
             expect(robos.connect(addr1).whitelistMint(4)).to.be.revertedWith('max per address');
-            expect(await robos.balanceOG(addr1.address)).to.equal(4);
-            expect(await robos.robosSupply()).to.equal(64);
+            expect(await robos.balanceOG(addr1.address)).to.equal(2);
+            expect(await robos.robosSupply()).to.equal(62);
         })
 
         it("Should Fails if addr1 is not whitelisted", async function () {
