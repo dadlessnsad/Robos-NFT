@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract ERC721Namable is ERC721 {
 
-	uint256 public nameChangePrice = 20 ether;
-	uint256 constant public BIO_CHANGE_PRICE = 11 ether;
+	uint256 public nameChangePrice = 5 ether;
+	uint256 constant public BIO_CHANGE_PRICE = 5 ether;
 
 	mapping(uint256 => string) public bio;
 

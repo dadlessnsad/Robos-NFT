@@ -8,18 +8,16 @@ import {ERC20} from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import {IRobos} from "./Interface/IRobos.sol";
 
 
-contract YieldToken is ERC20("Robo Token", "RBTK", 18) {
+contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
     // using SafeMath for uint256;
 
 /*/////////////////////////////////////////////////////////////
                       Public Vars
 /////////////////////////////////////////////////////////////*/
 
-
+    uint256 constant public LEGENDARY_RATE = 3 ether;
     uint256 constant public BASE_RATE = 2 ether; 
-
     uint256 constant public JR_BASE_RATE = 1 ether;
-
     //INITAL_ISSUANCE off of mintint a ROBO
     uint256 constant public INITAL_ISSUANCE = 10 ether; 
     /// End time for Base rate yeild token (UNIX timestamp)
@@ -79,8 +77,32 @@ contract YieldToken is ERC20("Robo Token", "RBTK", 18) {
 
     function updateReward(address _from, address _to, uint256 _tokenId) external {
         require(msg.sender == address(robosContract));
+        //Lendary Rewards
+        if (_tokenId < 13) {
+            uint256 time = min(block.timestamp, END);
+            uint256 timerFrom = lastUpdate[_from];
 
-        if (_tokenId < 5001) {
+            if (timerFrom > 0) {
+                rewards[_from] += robosContract.balanceOG(_from) * (LEGENDARY_RATE * (time - timerFrom)) / 86400; 
+            }
+            if (timerFrom != END) {
+                lastUpdate[_from] = time;
+            }
+                        
+            if (_to != address(0)) {
+                uint256 timerTo = lastUpdate[_to];
+
+                if (timerTo > 0) {
+                    rewards[_to] += robosContract.balanceOG(_to) * (LEGENDARY_RATE * (time - timerTo)) / 86400;
+                }
+
+                if (timerTo != END) {
+                    lastUpdate[_to] = time;
+                }
+            }
+        }
+        //Genesis Rewards
+        if (_tokenId > 12 && _tokenId < 5001) {
             uint256 time = min(block.timestamp, END);
             uint256 timerFrom = lastUpdate[_from];
 
@@ -105,7 +127,7 @@ contract YieldToken is ERC20("Robo Token", "RBTK", 18) {
             }
 
         }
-        
+        // JR rewards
         if (_tokenId >= 5001) {
             uint256 time = min(block.timestamp, END);
             uint256 timerFrom = lastUpdate[_from];
@@ -152,8 +174,9 @@ contract YieldToken is ERC20("Robo Token", "RBTK", 18) {
     function getTotalClaimable(address _user) external view returns(uint256) {
         uint256 time = min(block.timestamp, END);
         uint256 pending = robosContract.balanceOG(_user) * (BASE_RATE * (time - lastUpdate[_user])) / 86400;
+        uint256 legendaryPending = robosContract.balanceOG(_user) * (LEGENDARY_RATE * (time - lastUpdate[_user])) / 86400;
         uint256 jrPending = robosContract.jrCount(_user) * (JR_BASE_RATE * (time - lastUpdate[_user])) / 86400;
-        return rewards[_user] + (pending + jrPending);
+        return rewards[_user] + (pending + jrPending + legendaryPending);
     }
 /*/////////////////////////////////////////////////////////////
                   onlyOwner Functions
