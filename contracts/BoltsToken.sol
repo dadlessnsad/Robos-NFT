@@ -9,7 +9,6 @@ import {IRobos} from "./Interface/IRobos.sol";
 
 
 contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
-    // using SafeMath for uint256;
 
 /*/////////////////////////////////////////////////////////////
                       Public Vars
@@ -23,12 +22,11 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
     /// End time for Base rate yeild token (UNIX timestamp)
     /// END time = Sun Jan 30 2033 01:01:01 GMT-0700 (Mountain Standard Time) - in 11 years
     uint256 constant public END = 1959062461; 
-    
 
 /*/////////////////////////////////////////////////////////////
                         Mappings
 /////////////////////////////////////////////////////////////*/
-
+    
     mapping(address => uint256) public rewards;
     mapping(address => uint256) public lastUpdate;
 
@@ -48,22 +46,23 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
         robosContract = IRobos(_robos);
     }
 
-
 /*/////////////////////////////////////////////////////////////
-                  Internal Functions
+                  Modifier Functions
 /////////////////////////////////////////////////////////////*/
 
-    function min(uint256 a, uint256 b) internal pure returns (uint256) {
-      return a < b ? a : b;
+    modifier onlyRobosContract() {
+        require(
+            msg.sender == address(robosContract),
+            "Only Robos contract can call this."
+        );
+        _;
     }
 
 /*/////////////////////////////////////////////////////////////
                     External Functions
 /////////////////////////////////////////////////////////////*/
 
-
-    function updateRewardOnMint(address _user, uint256 _amount) external {
-      require(msg.sender == address(robosContract), "Cant call this");
+    function updateRewardOnMint(address _user, uint256 _amount) external onlyRobosContract() {
       uint256 time = min(block.timestamp, END);
       uint256 timerUser = lastUpdate[_user];
       if (timerUser > 0 ) {
@@ -75,8 +74,7 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
     }
 
 
-    function updateReward(address _from, address _to, uint256 _tokenId) external {
-        require(msg.sender == address(robosContract));
+    function updateReward(address _from, address _to, uint256 _tokenId) external onlyRobosContract() {
         //Lendary Rewards
         if (_tokenId < 13) {
             uint256 time = min(block.timestamp, END);
@@ -156,8 +154,7 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
     }
 
 
-    function getReward(address _to) external {
-      require(msg.sender == address(robosContract));
+    function getReward(address _to) external onlyRobosContract() {
       uint256 reward = rewards[_to];
       if (reward > 0) {
         rewards[_to] = 0;
@@ -166,8 +163,7 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
       }
     }
 
-    function burn(address _from, uint256 _amount) external {
-      require(msg.sender == address(robosContract));
+    function burn(address _from, uint256 _amount) external onlyRobosContract() {
       _burn(_from, _amount);
     }
 
@@ -178,9 +174,13 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
         uint256 jrPending = robosContract.jrCount(_user) * (JR_BASE_RATE * (time - lastUpdate[_user])) / 86400;
         return rewards[_user] + (pending + jrPending + legendaryPending);
     }
+    
 /*/////////////////////////////////////////////////////////////
-                  onlyOwner Functions
+                  Internal Functions
 /////////////////////////////////////////////////////////////*/
 
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+      return a < b ? a : b;
+    }
+    
 }
-

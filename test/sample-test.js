@@ -138,12 +138,29 @@ describe("RobosNFT Test", function () {
                 value: ethers.utils.parseEther("0.4")
             })).to.be.reverted
         })
-        
+
         it("Should not allow user to claim Boltstoken if not owner of a Robo", async function () {
             const setPause = await robos.pause(false);
             const setWhitelsit = await robos.setOnlyPreSale(false);
             expect(robos.connect(addr1).getReward()).to.be.reverted; 
         })
+
+        it("Should not allow user to claim Boltstoken from bolts contract", async function () {
+            const setPause = await robos.pause(false);
+            const setWhitelsit = await robos.setOnlyPreSale(false);
+            const mintRobo = await robos.connect(addr1).mintGenesisRobo(2, {
+                value: ethers.utils.parseEther("0.2")
+            })
+
+            const balance = await robos.connect(addr1).balanceOG()
+            console.log(balance);
+
+            expect(boltsToken.connect(addr1).getReward()).to.equal(0);
+
+            // expect(robos.connect(addr1).getReward()).to.be.reverted; 
+        })
+
+
         
         // it("Should allow user to claim Boltstoken if owner of a Robo", async function () {
         //     const setPause = await robos.pause(false);

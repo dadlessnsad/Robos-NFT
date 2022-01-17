@@ -16,9 +16,10 @@ import {BoltsToken} from "./BoltsToken.sol";
 contract RobosNFT is ERC721Namable, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter internal _tokenIdTracker;
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
+
+/*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Robo Generatioin Structs
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/  
+///////////////////////////////////////////////////////////////////////////////////////////////*/  
     struct ManufactureHistory {
         uint256 tokenId;
         uint256 time;
@@ -32,9 +33,9 @@ contract RobosNFT is ERC721Namable, Ownable {
         GENESIS_ROBO,
         ROBO_JR
     }
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
+/*///////////////////////////////////////////////////////////////////////////////////////////////
                                         Public Vars
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
+///////////////////////////////////////////////////////////////////////////////////////////////*/  
     //Public Strings
     string public baseURI;
     string public baseExtension  = ".json";
@@ -64,77 +65,116 @@ contract RobosNFT is ERC721Namable, Ownable {
 
     //Set Yeild token as RoboToken
     BoltsToken public boltsToken;
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                    Robo Storage Mappings
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
+/*///////////////////////////////////////////////////////////////////////////////////////////////
+                                        Mappings
+///////////////////////////////////////////////////////////////////////////////////////////////*/
     mapping(address => uint256) public addressMintedBalance;
     mapping(address => uint256) public balanceOG;
     mapping(address => uint256) public balanceJR;
     mapping(uint256 => ManufactureHistory) public manufactureHistory;
     mapping(uint256 => Robo) public roboz ;
     mapping(uint256 => uint256) public robosManufacture ;
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
+/*///////////////////////////////////////////////////////////////////////////////////////////////
                                         Events
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
+///////////////////////////////////////////////////////////////////////////////////////////////*/
 
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
+/*///////////////////////////////////////////////////////////////////////////////////////////////
                                         Constructor
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
+///////////////////////////////////////////////////////////////////////////////////////////////*/
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _initBaseURI,
         string[] memory _names,
-        uint256[] memory _ids)
-        ERC721Namable(_name, _symbol, _names, _ids) {
-            xurgi == _msgSender();
-            setBaseURI(_initBaseURI);
-            price = 0.1 ether;
-            bulkBuyLimit = 8;
-            _preMint(60);
-        }
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                    Internal/private functions
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/ 
-    function _baseURI() internal view virtual override returns(string memory) {
-        return baseURI;
+        uint256[] memory _ids
+    ) ERC721Namable(_name, _symbol, _names, _ids) {
+        xurgi == _msgSender();
+        setBaseURI(_initBaseURI);
+        price = 0.1 ether;
+        bulkBuyLimit = 8;
+        _preMint(60);
+    }
+
+/*///////////////////////////////////////////////////////////////////////////////////////////////
+                                    Modifier Functions
+///////////////////////////////////////////////////////////////////////////////////////////////*/
+
+/*///////////////////////////////////////////////////////////////////////////////////////////////
+                                    External Functions
+///////////////////////////////////////////////////////////////////////////////////////////////*/  
+    function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external payable {
+        require(breeding == true, "Breeding disabled");
+        require(roboJrSupply <= roboJrMaxSupply, "supply exceeded");
+
+        //requires msgSender to own to tokenIds 
+        require(ownerOf(tokenIdA) == msg.sender, "not ownerOf");
+        require(ownerOf(tokenIdB) == msg.sender, "not ownerOf");
+        //requires tokenIds to be a GENESIS_ROBO
+        require(roboz[tokenIdA].generation  == uint256(Generation.GENESIS_ROBO), "Can only breed GenesisRobos");
+        require(roboz[tokenIdB].generation  == uint256(Generation.GENESIS_ROBO), "Can only breed GenesisRobos");
+
+        require(robosManufacture[tokenIdA] + 7 days < block.timestamp, "wait 7 days");
+        require(robosManufacture[tokenIdB] + 7 days < block.timestamp, "wait 7 days");
+
+        require(boltsToken.balanceOf(msg.sender) >= MANUFACTURE_PRICE);
+        
+        boltsToken.burn(msg.sender, MANUFACTURE_PRICE);
+    
+        roboJrSupply++;
+
+        return _manufacture(tokenIdA, tokenIdB);
+    }
+
+    function getReward() external {
+        boltsToken.updateReward(msg.sender, address(0), 0);
+        boltsToken.getReward(msg.sender);
+    }
+
+     function setMintCost(uint256 newPrice) external onlyOwner {
+        price = newPrice;
+    }
+
+    function setTxLimit(uint16 _bulkBuyLimit) external onlyOwner {
+        bulkBuyLimit = _bulkBuyLimit;
+    }
+
+    function enableBreeding() external onlyOwner {
+        breeding = true;
     }
     
-    function _preMint(uint256 amount) internal onlyOwner {
-        robosSupply = robosSupply + amount;
-        for (uint256 i = 0; i < amount; i++) {
-            balanceOG[msg.sender]++;
-            _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
-        }
+    function disableBreeding() external onlyOwner {
+        breeding = false;
     }
 
-    function toString(uint256 value) private pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT license
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
+    function changeNamePrice(uint256 _price) external onlyOwner {
+        nameChangePrice = _price;
     }
 
+    function setBaseURI(string memory _newBaseURI) public onlyOwner {
+        baseURI = _newBaseURI;
+    }
 
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
+    function pause(bool _state) external onlyOwner {
+        paused = _state;
+    }
+
+    function whitelistUsers(address[] calldata _users) public onlyOwner {
+        delete whitelistedAddresses;
+        whitelistedAddresses = _users;
+    }
+
+    function setOnlyPreSale(bool _state) external onlyOwner {
+        preSale = _state;
+    }
+
+    function setBoltsToken(address _yield) external onlyOwner {
+        boltsToken = BoltsToken(_yield);
+    }
+
+/*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Public Mint/Breed Functions
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/  
-    function mintGenesisRobo(uint256 amount) public payable {
+///////////////////////////////////////////////////////////////////////////////////////////////*/
+        function mintGenesisRobo(uint256 amount) public payable {
         require(paused == false, "Paused");
         require(preSale == false, "Sale not public");
         require(amount <= bulkBuyLimit, "amount exceded limit");
@@ -184,32 +224,24 @@ contract RobosNFT is ERC721Namable, Ownable {
             _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
         }
     }
-
-    function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external payable {
-        require(breeding == true, "Breeding disabled");
-        require(roboJrSupply <= roboJrMaxSupply, "supply exceeded");
-
-        //requires msgSender to own to tokenIds 
-        require(ownerOf(tokenIdA) == msg.sender, "not ownerOf");
-        require(ownerOf(tokenIdB) == msg.sender, "not ownerOf");
-        //requires tokenIds to be a GENESIS_ROBO
-        require(roboz[tokenIdA].generation  == uint256(Generation.GENESIS_ROBO), "Can only breed GenesisRobos");
-        require(roboz[tokenIdB].generation  == uint256(Generation.GENESIS_ROBO), "Can only breed GenesisRobos");
-
-        require(robosManufacture[tokenIdA] + 7 days < block.timestamp, "wait 7 days");
-        require(robosManufacture[tokenIdB] + 7 days < block.timestamp, "wait 7 days");
-
-        require(boltsToken.balanceOf(msg.sender) >= MANUFACTURE_PRICE);
-        
-        boltsToken.burn(msg.sender, MANUFACTURE_PRICE);
     
-        roboJrSupply++;
-
-        return _manufacture(tokenIdA, tokenIdB);
+    function withdraw() public payable onlyOwner {
+        (bool success, ) = payable(msg.sender).call{value: address(this).balance}("");
+        require(success);
     }
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
+/*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Public View Functions
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
+///////////////////////////////////////////////////////////////////////////////////////////////*/
+    function changeName(uint256 tokenId, string memory newName) public override {
+        boltsToken.burn(msg.sender, nameChangePrice);
+        super.changeName(tokenId, newName);
+    }
+
+    function changeBio(uint256 tokenId, string memory _bio) public override {
+        boltsToken.burn(msg.sender, BIO_CHANGE_PRICE);
+        super.changeBio(tokenId, _bio);
+    }
+    
     function  isWhitelisted(address _user) public view returns (bool) {
         for(uint i = 0; i < whitelistedAddresses.length; i++) {
             if (whitelistedAddresses[i] == _user) {
@@ -239,29 +271,14 @@ contract RobosNFT is ERC721Namable, Ownable {
             generationPath = "roboJr/";
         }
         return bytes(currentBaseURI).length > 0
-        ? string(abi.encodePacked(currentBaseURI, generationPath, tokenId,baseExtension)) : "";    
-    }
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                    Public YieldToken Functions 
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
-    function changeName(uint256 tokenId, string memory newName) public override {
-        boltsToken.burn(msg.sender, nameChangePrice);
-        super.changeName(tokenId, newName);
+        ? string(abi.encodePacked(currentBaseURI, generationPath, tokenId, baseExtension)) : "";    
     }
 
-    function changeBio(uint256 tokenId, string memory _bio) public override {
-        boltsToken.burn(msg.sender, BIO_CHANGE_PRICE);
-        super.changeBio(tokenId, _bio);
-    }
-
-    function getReward() external {
-        boltsToken.updateReward(msg.sender, address(0), 0);
-        boltsToken.getReward(msg.sender);
-    }
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                            ERC721 Logic
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/        
-    function transferFrom(address from, address to, uint256 tokenId) public override {
+    function transferFrom(
+        address from, 
+        address to, 
+        uint256 tokenId
+    ) public override {
         boltsToken.updateReward(from, to, tokenId);
         if (tokenId < 5001) {
             balanceOG[from]--;
@@ -270,7 +287,12 @@ contract RobosNFT is ERC721Namable, Ownable {
         ERC721.transferFrom(from, to, tokenId);
     }
 
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override {
+    function safeTransferFrom(
+        address from,
+        address to, 
+        uint256 tokenId, 
+        bytes memory _data
+    ) public override {
         boltsToken.updateReward(from, to, tokenId);
         if (tokenId < 5001) {
 
@@ -279,9 +301,24 @@ contract RobosNFT is ERC721Namable, Ownable {
         }
         ERC721.safeTransferFrom(from, to, tokenId, _data);
     } 
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                Private Breed/Mint Functions
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/
+/*///////////////////////////////////////////////////////////////////////////////////////////////
+                                    Internal functions
+///////////////////////////////////////////////////////////////////////////////////////////////*/
+    function _baseURI() internal view virtual override returns(string memory) {
+        return baseURI;
+    }
+    
+/*///////////////////////////////////////////////////////////////////////////////////////////////
+                                    private functions
+///////////////////////////////////////////////////////////////////////////////////////////////*/ 
+    function _preMint(uint256 amount) private {
+        robosSupply = robosSupply + amount;
+        for (uint256 i = 0; i < amount; i++) {
+            balanceOG[msg.sender]++;
+            _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
+        }
+    }
+    
     function _mintByGeneration(address to, Generation generation) private {
         uint8 _generation = uint8(generation);
         _tokenIdTracker.increment();
@@ -306,55 +343,26 @@ contract RobosNFT is ERC721Namable, Ownable {
         _mintByGeneration(_msgSender(), Generation.ROBO_JR);
     }
 
+    function toString(uint256 value) private pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT license
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
 
-    /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                    onlyOwner Functions
-    ///////////////////////////////////////////////////////////////////////////////////////////////*/  
-
-    function setMintCost(uint256 newPrice) external onlyOwner {
-        price = newPrice;
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 
-    function setTxLimit(uint16 _bulkBuyLimit) external onlyOwner {
-        bulkBuyLimit = _bulkBuyLimit;
-    }
-
-    function enableBreeding() external onlyOwner {
-        breeding = true;
-    }
-    
-    function disableBreeding() external onlyOwner {
-        breeding = false;
-    }
-
-    function changeNamePrice(uint256 _price) external onlyOwner {
-        nameChangePrice = _price;
-    }
-
-    function setBaseURI(string memory _newBaseURI) public onlyOwner {
-        baseURI = _newBaseURI;
-    }
-
-    function pause(bool _state) external onlyOwner {
-        paused = _state;
-    }
-
-    function whitelistUsers(address[] calldata _users) public onlyOwner {
-        delete whitelistedAddresses;
-        whitelistedAddresses = _users;
-    }
-
-    function setOnlyPreSale(bool _state) external onlyOwner {
-        preSale = _state;
-    }
-
-    function setBoltsToken(address _yield) external onlyOwner {
-        boltsToken = BoltsToken(_yield);
-    }
-
-    function withdraw() public payable onlyOwner {
-        (bool success, ) = payable(msg.sender).call{value: address(this).balance}("");
-        require(success);
-    }
-  
 }
