@@ -32,11 +32,16 @@ describe("RobosNFT Test", function () {
     describe("Deployment", function () {
 
         it("Should set the right owner", async function () {
+            const xurg = await robos.owner()
+            console.log(xurg)
+
             expect(await robos.owner()).to.equal(owner.address);
+
         });
         
         it("should fail if paused, ", async function () {
             expect(robos.connect(addr1).mintGenesisRobo()).to.be.reverted;
+            
         })
 
         it("Should set paused to false", async function () {

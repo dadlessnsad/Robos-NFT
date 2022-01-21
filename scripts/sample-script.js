@@ -16,7 +16,7 @@ async function main() {
 
   // We get the contract to deploy
   const robosNFT = await ethers.getContractFactory("RobosNFT");
-  const robos = await robosNFT.deploy("RobosNFT", "RBT", "IPFS://gfdsgds/", ["Rayne"], [1]);
+  const robos = await robosNFT.deploy("RobosNFT", "RBT", "ipfs://QmaEU6xzL1VWTWghqHyWPNebbSyirptD9cu813z5bq4bC7/", ["Bob"], [1]);
   await robos.deployed();
 
   console.log("RobosNFT deployed to:", robos.address);

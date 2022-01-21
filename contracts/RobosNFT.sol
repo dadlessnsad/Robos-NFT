@@ -47,7 +47,7 @@ contract RobosNFT is ERC721Namable, Ownable {
 
     //Public Addresses
     address public constant burn = address(0x000000000000000000000000000000000000dEaD);
-    address payable public xurgi;
+    address payable public xurgi = payable(0x4BE50DAF1339DA3dA8dDC130F8CE54Aa10eF2dc6);
     address[] public whitelistedAddresses;
 
     // Minting Variables
@@ -98,11 +98,17 @@ contract RobosNFT is ERC721Namable, Ownable {
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Modifier Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/
-
+    modifier unPaused() {
+        require(
+            paused == false,
+            "Contract Paused"
+        );
+        _;
+    }
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                     External Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/  
-    function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external payable {
+    function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external payable unPaused() {
         require(breeding == true, "Breeding disabled");
         require(roboJrSupply <= roboJrMaxSupply, "supply exceeded");
 
@@ -125,7 +131,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         return _manufacture(tokenIdA, tokenIdB);
     }
 
-    function getReward() external {
+    function getReward() external unPaused() {
         boltsToken.updateReward(msg.sender, address(0), 0);
         boltsToken.getReward(msg.sender);
     }
@@ -174,8 +180,7 @@ contract RobosNFT is ERC721Namable, Ownable {
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Public Mint/Breed Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/
-        function mintGenesisRobo(uint256 amount) public payable {
-        require(paused == false, "Paused");
+        function mintGenesisRobo(uint256 amount) public payable unPaused() {
         require(preSale == false, "Sale not public");
         require(amount <= bulkBuyLimit, "amount exceded limit");
         require((amount + robosSupply) <= roboMaxSupply);
@@ -197,7 +202,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         }
     }
 
-    function whitelistMint(uint256 amount) public payable {
+    function whitelistMint(uint256 amount) public payable unPaused(){
         require(paused == false, "Paused");
         require(preSale == true, "preSale over");
         require(isWhitelisted(msg.sender), "not whitelisted");
@@ -266,9 +271,9 @@ contract RobosNFT is ERC721Namable, Ownable {
         string memory  generationPath = "/";
         uint256 generation = roboz[_tokenId].generation;
         if (generation == 0) {
-            generationPath = "genesisRobo/";
+            generationPath = "genesisRobo";
         } else if (generation == 1) {
-            generationPath = "roboJr/";
+            generationPath = "roboJr";
         }
         return bytes(currentBaseURI).length > 0
         ? string(abi.encodePacked(currentBaseURI, generationPath, tokenId, baseExtension)) : "";    
