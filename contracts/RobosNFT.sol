@@ -14,6 +14,7 @@ import {ERC721Namable} from "./ERC721Namable.sol";
 import {BoltsToken} from "./BoltsToken.sol";
 
 contract RobosNFT is ERC721Namable, Ownable {
+
     using Counters for Counters.Counter;
     Counters.Counter internal _tokenIdTracker;
 
@@ -24,7 +25,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         uint256 tokenId;
         uint256 time;
     }
-    
+
     struct Robo {
         uint8 generation;
     }
@@ -33,6 +34,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         GENESIS_ROBO,
         ROBO_JR
     }
+
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                         Public Vars
 ///////////////////////////////////////////////////////////////////////////////////////////////*/  

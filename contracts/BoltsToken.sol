@@ -8,20 +8,20 @@ import {ERC20} from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import {IRobos} from "./Interface/IRobos.sol";
 
 
-contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
+contract BoltsToken is ERC20("Bolts Token", "RBTK", 18) {
 
 /*/////////////////////////////////////////////////////////////
                       Public Vars
 /////////////////////////////////////////////////////////////*/
 
     uint256 constant public LEGENDARY_RATE = 3 ether;
-    uint256 constant public BASE_RATE = 2 ether; 
+    uint256 constant public BASE_RATE = 2 ether;
     uint256 constant public JR_BASE_RATE = 1 ether;
     //INITAL_ISSUANCE off of mintint a ROBO
-    uint256 constant public INITAL_ISSUANCE = 10 ether; 
+    uint256 constant public INITAL_ISSUANCE = 10 ether;
     /// End time for Base rate yeild token (UNIX timestamp)
     /// END time = Sun Jan 30 2033 01:01:01 GMT-0700 (Mountain Standard Time) - in 11 years
-    uint256 constant public END = 1959062461; 
+    uint256 constant public END = 1959062461;
 
 /*/////////////////////////////////////////////////////////////
                         Mappings
@@ -73,7 +73,6 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
       }
     }
 
-
     function updateReward(address _from, address _to, uint256 _tokenId) external onlyRobosContract() {
         //Lendary Rewards
         if (_tokenId < 13) {
@@ -83,6 +82,7 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
             if (timerFrom > 0) {
                 rewards[_from] += robosContract.balanceOG(_from) * (LEGENDARY_RATE * (time - timerFrom)) / 86400; 
             }
+
             if (timerFrom != END) {
                 lastUpdate[_from] = time;
             }
@@ -99,6 +99,7 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
                 }
             }
         }
+
         //Genesis Rewards
         if (_tokenId > 12 && _tokenId < 5001) {
             uint256 time = min(block.timestamp, END);
@@ -123,7 +124,6 @@ contract BoltsToken is ERC20("Robo Token", "RBTK", 18) {
                     lastUpdate[_to] = time;
                 }
             }
-
         }
         // JR rewards
         if (_tokenId >= 5001) {
