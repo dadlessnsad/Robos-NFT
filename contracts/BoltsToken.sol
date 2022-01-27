@@ -8,7 +8,7 @@ import {ERC20} from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import {IRobos} from "./Interface/IRobos.sol";
 
 
-contract BoltsToken is ERC20("Bolts Token", "RBTK", 18) {
+contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
 
 /*/////////////////////////////////////////////////////////////
                       Public Vars
