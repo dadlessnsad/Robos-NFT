@@ -1,3 +1,4 @@
+
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -8,7 +9,7 @@ import {ERC20} from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import {IRobos} from "./Interface/IRobos.sol";
 
 
-contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
+contract ClankToken is ERC20("Clank Token", "CLANK", 18) {
 
 /*/////////////////////////////////////////////////////////////
                       Public Vars
@@ -22,6 +23,8 @@ contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
     /// End time for Base rate yeild token (UNIX timestamp)
     /// END time = Sun Jan 30 2033 01:01:01 GMT-0700 (Mountain Standard Time) - in 11 years
     uint256 constant public END = 1959062461;
+    uint256 private constant TEAM_SUPPLY = 6_000_000 * 10**18;
+
 
 /*/////////////////////////////////////////////////////////////
                         Mappings
@@ -44,6 +47,7 @@ contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
 
     constructor(address _robos) {
         robosContract = IRobos(_robos);
+        _mint(msg.sender, TEAM_SUPPLY);
     }
 
 /*/////////////////////////////////////////////////////////////
@@ -75,7 +79,7 @@ contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
 
     function updateReward(address _from, address _to, uint256 _tokenId) external onlyRobosContract() {
         //Lendary Rewards
-        if (_tokenId < 13) {
+        if (_tokenId < 16) {
             uint256 time = min(block.timestamp, END);
             uint256 timerFrom = lastUpdate[_from];
 
@@ -101,7 +105,7 @@ contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
         }
 
         //Genesis Rewards
-        if (_tokenId > 12 && _tokenId < 5001) {
+        if (_tokenId > 16 && _tokenId < 2223) {
             uint256 time = min(block.timestamp, END);
             uint256 timerFrom = lastUpdate[_from];
 
@@ -126,7 +130,7 @@ contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
             }
         }
         // JR rewards
-        if (_tokenId >= 5001) {
+        if (_tokenId >= 2223) {
             uint256 time = min(block.timestamp, END);
             uint256 timerFrom = lastUpdate[_from];
 
@@ -166,6 +170,7 @@ contract BoltsToken is ERC20("Bolts Token", "BLTS", 18) {
     function burn(address _from, uint256 _amount) external onlyRobosContract() {
       _burn(_from, _amount);
     }
+     
 
     function getTotalClaimable(address _user) external view returns(uint256) {
         uint256 time = min(block.timestamp, END);

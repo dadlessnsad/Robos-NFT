@@ -3,15 +3,17 @@
 /// @author The name of the author
 /// @notice Explain to an end user what this does
 /// @dev Explain to a developer any extra details
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC721Namable} from "./ERC721Namable.sol";
-import {BoltsToken} from "./BoltsToken.sol";
+import {ClankToken} from "./ClankToken.sol";
 
 contract RobosNFT is ERC721Namable, Ownable {
 
@@ -41,6 +43,7 @@ contract RobosNFT is ERC721Namable, Ownable {
     //Public Strings
     string public baseURI;
     string public baseExtension  = ".json";
+    bytes32 private merkleRoot = 0x9e8a42eb877a31078228f072d3799f27209c56b5193632520d34b734cfff4df0;
 
     // Booleans
     bool public paused = true; 
@@ -49,8 +52,12 @@ contract RobosNFT is ERC721Namable, Ownable {
 
     //Public Addresses
     address public constant burn = address(0x000000000000000000000000000000000000dEaD);
-    address payable public xurgi = payable(0x4BE50DAF1339DA3dA8dDC130F8CE54Aa10eF2dc6);
-    address[] public whitelistedAddresses;
+    address payable public xurgi;
+    //OPENSEA ADDY 
+    //      Rinkeby: 0x1E525EEAF261cA41b809884CBDE9DD9E1619573A
+    //      Mainnet: 0xa5409ec958c83c3f309868babaca7c86dcb077c1
+    address public proxyRegistryAddress = 0x1E525EEAF261cA41b809884CBDE9DD9E1619573A;
+
 
     // Minting Variables
     // Whitelist Max per wallet kinda easy to get past tho
@@ -62,11 +69,13 @@ contract RobosNFT is ERC721Namable, Ownable {
     //Genesis Robo &RoboJr supply vaars
     uint256 public robosSupply; 
     uint256 public roboJrSupply;
-    uint256 public roboMaxSupply = 5000;
-    uint256 public roboJrMaxSupply =  2500;
+    uint256 public roboMaxSupply = 2222;
+    uint256 public roboJrMaxSupply =  1111;
+	uint256 public nameChangePrice = 5 ether;
+	uint256 constant public BIO_CHANGE_PRICE = 5 ether;
 
     //Set Yeild token as RoboToken
-    BoltsToken public boltsToken;
+    ClankToken public clankToken;
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                         Mappings
 ///////////////////////////////////////////////////////////////////////////////////////////////*/
@@ -107,9 +116,56 @@ contract RobosNFT is ERC721Namable, Ownable {
         );
         _;
     }
+        
+    modifier callerIsUser() {
+        require(tx.origin == msg.sender, 'The caller is another contract.');
+        _;
+    }
+
+    modifier isValidMerkleProof(bytes32[] calldata merkleProof, bytes32 root) {
+        require(
+            MerkleProof.verify(
+                merkleProof,
+                root,
+                keccak256(abi.encodePacked(msg.sender))
+            ),
+            "Address does not exist in list"
+        );
+        _;
+    }
+
+    modifier isPresale() {
+        require(preSale == true, "Presale not active");
+        _;
+    }
+
+    modifier notMaxSupply(uint256 amount) {
+        require(amount +robosSupply <= roboMaxSupply);
+        _;
+    }
+
+    modifier isPublicSale() {
+        require(!preSale, "Sale not Public");
+        _;
+    }
+
+    modifier isCorrectPayment(uint256 price, uint256 amount) {
+        uint256 total = price * amount;
+        require(
+            total == msg.value,
+            "Incorrect ETH value sent"
+        );
+        (bool transferToDaoStatus, ) = xurgi.call{value: total}("");
+        require(
+            transferToDaoStatus,
+            "Address: unable to send value."
+        );
+        _;
+    }
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                     External Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/  
+
     function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external payable unPaused() {
         require(breeding == true, "Breeding disabled");
         require(roboJrSupply <= roboJrMaxSupply, "supply exceeded");
@@ -124,21 +180,21 @@ contract RobosNFT is ERC721Namable, Ownable {
         require(robosManufacture[tokenIdA] + 7 days < block.timestamp, "wait 7 days");
         require(robosManufacture[tokenIdB] + 7 days < block.timestamp, "wait 7 days");
 
-        require(boltsToken.balanceOf(msg.sender) >= MANUFACTURE_PRICE);
+        require(clankToken.balanceOf(msg.sender) >= MANUFACTURE_PRICE);
         
-        boltsToken.burn(msg.sender, MANUFACTURE_PRICE);
+        clankToken.burn(msg.sender, MANUFACTURE_PRICE);
     
-        roboJrSupply++;
+        roboJrSupply = roboJrSupply + 1;
 
         return _manufacture(tokenIdA, tokenIdB);
     }
 
     function getReward() external unPaused() {
-        boltsToken.updateReward(msg.sender, address(0), 0);
-        boltsToken.getReward(msg.sender);
+        clankToken.updateReward(msg.sender, address(0), 0);
+        clankToken.getReward(msg.sender);
     }
 
-     function setMintCost(uint256 newPrice) external onlyOwner {
+    function setMintCost(uint256 newPrice) external onlyOwner {
         price = newPrice;
     }
 
@@ -162,70 +218,64 @@ contract RobosNFT is ERC721Namable, Ownable {
         baseURI = _newBaseURI;
     }
 
-    function pause(bool _state) external onlyOwner {
-        paused = _state;
+    function setProxyRegistryAddress(address _proxyRegistryAddress) external onlyOwner {
+        proxyRegistryAddress = _proxyRegistryAddress;
     }
 
-    function whitelistUsers(address[] calldata _users) public onlyOwner {
-        delete whitelistedAddresses;
-        whitelistedAddresses = _users;
+    function setWLMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+    }
+
+    function pause(bool _state) external onlyOwner {
+        paused = _state;
     }
 
     function setOnlyPreSale(bool _state) external onlyOwner {
         preSale = _state;
     }
 
-    function setBoltsToken(address _yield) external onlyOwner {
-        boltsToken = BoltsToken(_yield);
+    function setClankToken(address _yield) external onlyOwner {
+        clankToken = ClankToken(_yield);
     }
 
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Public Mint/Breed Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/
-        function mintGenesisRobo(uint256 amount) public payable unPaused() {
-        require(preSale == false, "Sale not public");
+    function mintGenesisRobo(uint256 amount) 
+        public 
+        payable 
+        unPaused() 
+        callerIsUser() 
+        isPublicSale() 
+        notMaxSupply(amount) 
+        isCorrectPayment(price, amount) 
+    {
         require(amount <= bulkBuyLimit, "amount exceded limit");
-        require((amount + robosSupply) <= roboMaxSupply);
-
-        uint256 total = (price * amount);
-        require(total <= msg.value, "incorrect value");
-        
-        (bool transferToDaoStatus, ) = xurgi.call{value: total}("");
-        require(
-            transferToDaoStatus,
-            "Address: unable to send value."
-        );
 
         robosSupply = robosSupply + amount;
         for (uint256 i = 0; i < amount; i++) {
-            boltsToken.updateRewardOnMint(msg.sender, 1);
+            clankToken.updateRewardOnMint(msg.sender, 1);
             balanceOG[msg.sender]++;
             _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
         }
     }
 
-    function whitelistMint(uint256 amount) public payable unPaused(){
-        require(paused == false, "Paused");
-        require(preSale == true, "preSale over");
-        require(isWhitelisted(msg.sender), "not whitelisted");
-                
+    function whitelistMint(bytes32[] calldata proof, uint256 amount) 
+        public
+        payable 
+        unPaused() 
+        callerIsUser() 
+        isPresale() 
+        isValidMerkleProof(proof, merkleRoot) 
+        notMaxSupply(amount) 
+        isCorrectPayment(price, amount) 
+    {
         uint256 mintedCount = addressMintedBalance[msg.sender];
         require(mintedCount + amount <= nftPerAddress, "max per address");
-        require(amount <= bulkBuyLimit, "amount exceded limit");
-        require((amount + robosSupply) <= roboMaxSupply);
-
-        uint256 total = (price * amount);
-        require(total <= msg.value, "incorrect value");
-        
-        (bool transferToDaoStatus, ) = xurgi.call{value: total}("");
-        require(
-            transferToDaoStatus,
-            "Address: unable to send value."
-        );
 
         robosSupply = robosSupply + amount;
         for (uint256 i = 0; i < amount; i++) {
-            boltsToken.updateRewardOnMint(msg.sender, 1);
+            clankToken.updateRewardOnMint(msg.sender, 1);
             balanceOG[msg.sender]++;
             addressMintedBalance[msg.sender]++;
             _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
@@ -240,24 +290,16 @@ contract RobosNFT is ERC721Namable, Ownable {
                                     Public View Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/
     function changeName(uint256 tokenId, string memory newName) public override {
-        boltsToken.burn(msg.sender, nameChangePrice);
+        clankToken.burn(msg.sender, nameChangePrice);
         super.changeName(tokenId, newName);
     }
 
     function changeBio(uint256 tokenId, string memory _bio) public override {
-        boltsToken.burn(msg.sender, BIO_CHANGE_PRICE);
+        clankToken.burn(msg.sender, BIO_CHANGE_PRICE);
         super.changeBio(tokenId, _bio);
     }
     
-    function  isWhitelisted(address _user) public view returns (bool) {
-        for(uint i = 0; i < whitelistedAddresses.length; i++) {
-            if (whitelistedAddresses[i] == _user) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+   
     function generationOf(uint256 tokenId) public view returns(uint256 generation) {
         return roboz[tokenId].generation;
     }
@@ -286,7 +328,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         address to, 
         uint256 tokenId
     ) public override {
-        boltsToken.updateReward(from, to, tokenId);
+        clankToken.updateReward(from, to, tokenId);
         if (tokenId < 5001) {
             balanceOG[from]--;
             balanceOG[to]++;
@@ -300,7 +342,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         uint256 tokenId, 
         bytes memory _data
     ) public override {
-        boltsToken.updateReward(from, to, tokenId);
+        clankToken.updateReward(from, to, tokenId);
         if (tokenId < 5001) {
 
             balanceOG[from]--;
@@ -308,6 +350,12 @@ contract RobosNFT is ERC721Namable, Ownable {
         }
         ERC721.safeTransferFrom(from, to, tokenId, _data);
     } 
+        
+    function isApprovedForAll(address _owner, address operator) public view override returns (bool) {
+        OpenSeaProxyRegistry proxyRegistry = OpenSeaProxyRegistry(proxyRegistryAddress);
+        if (address(proxyRegistry.proxies(_owner)) == operator) return true;
+        return super.isApprovedForAll(_owner, operator);
+    }
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                     Internal functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/
@@ -372,4 +420,9 @@ contract RobosNFT is ERC721Namable, Ownable {
         return string(buffer);
     }
 
+}
+
+contract OwnableDelegateProxy { }
+contract OpenSeaProxyRegistry {
+    mapping(address => OwnableDelegateProxy) public proxies;
 }

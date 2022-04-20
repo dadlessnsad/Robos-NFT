@@ -2,26 +2,31 @@ const hre = require("hardhat");
 const ethers = hre.ethers;
 
 async function main() {
+  const [deployer] = await ethers.getSigners();
 
-  const robosNFT = await ethers.getContractFactory("RobosNFT");
-  const robos = await robosNFT.deploy("RobosNFT", "RBT", "ipfs://QmaEU6xzL1VWTWghqHyWPNebbSyirptD9cu813z5bq4bC7/", ["Bob"], [1]);
+  console.log("Deploying contracts with the account:", deployer.address);
+
+  console.log("Account balance:", (await deployer.getBalance()).toString());
+  
+  const RobosNFT = await ethers.getContractFactory("RobosNFT");
+  const robos = await RobosNFT.deploy("RobosNFT", "RBT", "ipfs://QmYVpWURtBAiuk6LYW1B8wn3PpiPer9YdjYJTL26RkYU6Z/", ["Bob"], [1]);
   await robos.deployed();
 
   console.log("RobosNFT deployed to:", robos.address);
   
-  const BoltsToken = await hre.ethers.getContractFactory("BoltsToken");
-  const boltsToken = await BoltsToken.deploy(robos.address);
-  await boltsToken.deployed();
+  const ClankToken = await hre.ethers.getContractFactory("ClankToken");
+  const clankToken = await ClankToken.deploy(robos.address);
+  await clankToken.deployed();
 
-  console.log("Bolts Token deployed to:", robos.address);
+  console.log("Clank Token deployed to:", clankToken.address);
 
-  const setBoltTokenTx = await robos.setBoltsToken(boltsToken.address);    
-  await setBoltTokenTx.wait();
+  const setClankTokenTx = await robos.setClankToken(clankToken.address);
+  await setClankTokenTx.wait();
 
-  console.log(setBoltTokenTx);
+  console.log(setClankTokenTx);
 
 }
-
+  
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main()
