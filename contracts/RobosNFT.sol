@@ -102,7 +102,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         xurgi == _msgSender();
         setBaseURI(_initBaseURI);
         price = 0.1 ether;
-        bulkBuyLimit = 8;
+        bulkBuyLimit = 4;
         _preMint(60);
     }
 
@@ -202,6 +202,10 @@ contract RobosNFT is ERC721Namable, Ownable {
         bulkBuyLimit = _bulkBuyLimit;
     }
 
+    function setWlTxLimit(uint16 _newNftPerAddress) external onlyOwner {
+        nftPerAddress = _newNftPerAddress;
+    }
+
     function enableBreeding() external onlyOwner {
         breeding = true;
     }
@@ -250,7 +254,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         notMaxSupply(amount) 
         isCorrectPayment(price, amount) 
     {
-        require(amount <= bulkBuyLimit, "amount exceded limit");
+        require(amount <= bulkBuyLimit, "amount exceeds limit");
 
         robosSupply = robosSupply + amount;
         for (uint256 i = 0; i < amount; i++) {

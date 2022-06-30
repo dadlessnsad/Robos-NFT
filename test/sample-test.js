@@ -157,8 +157,8 @@ describe("RobosNFT Test", function () {
             const setWhitelsit = await robos.setOnlyPreSale(false);
             console.log(await robos.robosSupply())
 
-            const tx1 = await robos.connect(addr1).mintGenesisRobo(8, {
-                value: ethers.utils.parseEther("0.8")
+            const tx1 = await robos.connect(addr1).mintGenesisRobo(4, {
+                value: ethers.utils.parseEther("0.4")
             })
 
             // const tx2 = await robos.connect(addr1).mintGenesisRobo(8, {
@@ -173,7 +173,7 @@ describe("RobosNFT Test", function () {
             //     value: ethers.utils.parseEther("0.8")
             // })
             // premint =25 || 25 + 8 + 8 + 8
-            expect(await robos.robosSupply()).to.equal(68)
+            expect(await robos.robosSupply()).to.equal(64)
         })
 
         it("Should revert with presale over", async function () {
@@ -185,8 +185,8 @@ describe("RobosNFT Test", function () {
         it("Should fail with wrong value sent", async function () {
             const setPause = await robos.pause(false);
             const setWhitelsit = await robos.setOnlyPreSale(false);
-            expect(robos.connect(addr1).mintGenesisRobo(8, {
-                value: ethers.utils.parseEther("0.4")
+            expect(robos.connect(addr1).mintGenesisRobo(4, {
+                value: ethers.utils.parseEther("0.3")
             })).to.be.reverted
         })
 
@@ -204,9 +204,10 @@ describe("RobosNFT Test", function () {
         //     })
 
         //     const balance = await robos.connect(addr1).balanceOG()
-        //     console.log(balance);
+        //     console.log(await balance);
 
-        //     expect(robos.connect(addr1).getReward()).to.be.reverted; 
+        //     console.log(await robos.connect(addr1).getReward());
+        //     expect(boltsToken.connect(addr1).getReward(addr1.address)).to.be.reverted;
         // })
 
 
@@ -220,16 +221,16 @@ describe("RobosNFT Test", function () {
 
         //     const balance = await boltsToken.balanceOf(addr1.address);
         //     console.log(balance)
-        //     expect(boltsToken.balanceOf(addr.address)).to.equal(8000000000000000000000000000)
+        //     //expect(robos.connect(addr1).getReward()).changeTokenBalance(boltsToken, balance);
         // })
         
-        // it("Should revert if user dosent own both tokens", async function () {
-        //     const setPause = await robos.pause(false);
-        //     const setWhitelsit = await robos.setOnlyPreSale(false);
-        //     const enable = await robos.enableBreeding()
+        it("Should revert if user dosent own both tokens", async function () {
+            const setPause = await robos.pause(false);
+            const setWhitelsit = await robos.setOnlyPreSale(false);
+            const enable = await robos.enableBreeding()
 
-        //     expect(await robos.manufactureRoboJr(60, 2)).to.be.reverted;
-        // })
+            expect(robos.connect(addr2).manufactureRoboJr(60, 2)).to.be.reverted;
+        })
         
         it("Should allow user to breedRoboJr", async function () {
             const setPause = await robos.pause(false);
