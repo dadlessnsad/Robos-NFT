@@ -8,8 +8,9 @@ const ethers = hre.ethers;
 module.exports = [
   "RobosNFT",
   "RBT",
-  "ipfs://QmYVpWURtBAiuk6LYW1B8wn3PpiPer9YdjYJTL26RkYU6Z/",
-  ["Bob"], 
-  [1]
+  "ipfs://FakeURI/",
+  ["Bob", "Alice", "Charlie", "Dave"], 
+  [1, 2, 3, 4],
+  "0x4BE50DAF1339DA3dA8dDC130F8CE54Aa10eF2dc6"
   ];
   

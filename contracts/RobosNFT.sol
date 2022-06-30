@@ -21,7 +21,7 @@ contract RobosNFT is ERC721Namable, Ownable {
     Counters.Counter internal _tokenIdTracker;
 
 /*///////////////////////////////////////////////////////////////////////////////////////////////
-                                    Robo Generatioin Structs
+                                    Robo Generation struct's
 ///////////////////////////////////////////////////////////////////////////////////////////////*/  
     struct ManufactureHistory {
         uint256 tokenId;
@@ -66,7 +66,7 @@ contract RobosNFT is ERC721Namable, Ownable {
     uint256 public price;
     uint256 public MANUFACTURE_PRICE = 20 ether;
 
-    //Genesis Robo &RoboJr supply vaars
+    //Genesis Robo &RoboJr supply vars
     uint256 public robosSupply; 
     uint256 public roboJrSupply;
     uint256 public roboMaxSupply = 2222;
@@ -74,7 +74,7 @@ contract RobosNFT is ERC721Namable, Ownable {
 	uint256 public nameChangePrice = 5 ether;
 	uint256 constant public BIO_CHANGE_PRICE = 5 ether;
 
-    //Set Yeild token as RoboToken
+    //Set Yield token as RoboToken
     ClankToken public clankToken;
 /*///////////////////////////////////////////////////////////////////////////////////////////////
                                         Mappings
@@ -97,13 +97,14 @@ contract RobosNFT is ERC721Namable, Ownable {
         string memory _symbol,
         string memory _initBaseURI,
         string[] memory _names,
-        uint256[] memory _ids
+        uint256[] memory _ids,
+        address payable _xurgi
     ) ERC721Namable(_name, _symbol, _names, _ids) {
-        xurgi == _msgSender();
+        xurgi = _xurgi;
         setBaseURI(_initBaseURI);
         price = 0.1 ether;
         bulkBuyLimit = 4;
-        _preMint(60);
+        _preMint(30);
     }
 
 /*///////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +150,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         _;
     }
 
-    modifier isCorrectPayment(uint256 price, uint256 amount) {
+    modifier isCorrectPayment(uint256 _price, uint256 amount) {
         uint256 total = price * amount;
         require(
             total == msg.value,
@@ -333,7 +334,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         uint256 tokenId
     ) public override {
         clankToken.updateReward(from, to, tokenId);
-        if (tokenId < 5001) {
+        if (tokenId < 2223) {
             balanceOG[from]--;
             balanceOG[to]++;
         }
@@ -347,7 +348,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         bytes memory _data
     ) public override {
         clankToken.updateReward(from, to, tokenId);
-        if (tokenId < 5001) {
+        if (tokenId < 2223) {
 
             balanceOG[from]--;
             balanceOG[to]++;
