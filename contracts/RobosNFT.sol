@@ -166,7 +166,7 @@ contract RobosNFT is ERC721Namable, Ownable {
                                     External Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////*/  
 
-    function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external payable unPaused() {
+    function manufactureRoboJr(uint256 tokenIdA, uint256 tokenIdB) external unPaused() {
         require(breeding == true, "Breeding disabled");
         require(roboJrSupply <= roboJrMaxSupply, "supply exceeded");
 
@@ -286,7 +286,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         }
     }
     
-    function withdraw() public payable onlyOwner {
+    function withdraw() public onlyOwner {
         (bool success, ) = payable(msg.sender).call{value: address(this).balance}("");
         require(success);
     }
