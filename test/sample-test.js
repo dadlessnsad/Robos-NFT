@@ -20,11 +20,11 @@ describe("RobosNFT Test", function () {
         robosNFT = await ethers.getContractFactory("RobosNFT");
         [owner, addr1, addr2, addr3] = await ethers.getSigners();
 
-        robos = await robosNFT.deploy("RobosNFT", "RBT", "IPFS://gfdsgds/", ["bobby"], [1]);
+        robos = await robosNFT.deploy("RobosNFT", "RBT", "IPFS://gfdsgds/", ["bobby"], [1], owner.address);
         await robos.deployed();
 
         ClankToken = await hre.ethers.getContractFactory("ClankToken");
-        clankToken = await ClankToken.deploy(robos.address);
+        clankToken = await ClankToken.deploy(robos.address, owner.address);
         await clankToken.deployed();
           
         const setClankTokenTx = await robos.setClankToken(clankToken.address);    
@@ -79,7 +79,7 @@ describe("RobosNFT Test", function () {
                 value: ethers.utils.parseEther("0.2")
             })
 
-            expect(await robos.robosSupply()).to.equal(62)      
+            expect(await robos.robosSupply()).to.equal(32)      
         })
 
         it("Should fail in user not WL", async function () {
@@ -173,7 +173,7 @@ describe("RobosNFT Test", function () {
             //     value: ethers.utils.parseEther("0.8")
             // })
             // premint =25 || 25 + 8 + 8 + 8
-            expect(await robos.robosSupply()).to.equal(64)
+            expect(await robos.robosSupply()).to.equal(34)
         })
 
         it("Should revert with presale over", async function () {

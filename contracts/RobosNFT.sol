@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: MIT
-/// @title A title that should describe the contract/interface
-/// @author The name of the author
-/// @notice Explain to an end user what this does
-/// @dev Explain to a developer any extra details
+/// @title Robos NFT Contract
+/// @author 0xOrphan
+/// @notice This contract is used to manage the NFTs of the Robos contract.
+/// @dev This contract is used to manage the NFTs of the Robos contract.
 
 pragma solidity ^0.8.0;
 
@@ -64,15 +64,15 @@ contract RobosNFT is ERC721Namable, Ownable {
     uint16 public nftPerAddress = 2;
     uint16 public bulkBuyLimit;
     uint256 public price;
-    uint256 public MANUFACTURE_PRICE = 20 ether;
+    uint256 public MANUFACTURE_PRICE = 69 ether;
 
     //Genesis Robo &RoboJr supply vars
     uint256 public robosSupply; 
     uint256 public roboJrSupply;
     uint256 public roboMaxSupply = 2222;
     uint256 public roboJrMaxSupply =  1111;
-	uint256 public nameChangePrice = 5 ether;
-	uint256 constant public BIO_CHANGE_PRICE = 5 ether;
+	uint256 public nameChangePrice = 25 ether;
+	uint256 public BioChangePrice = 25 ether;
 
     //Set Yield token as RoboToken
     ClankToken public clankToken;
@@ -215,8 +215,12 @@ contract RobosNFT is ERC721Namable, Ownable {
         breeding = false;
     }
 
-    function changeNamePrice(uint256 _price) external onlyOwner {
-        nameChangePrice = _price;
+    function changeNamePrice(uint256 _namePrice) external onlyOwner {
+        nameChangePrice = _namePrice;
+    }
+
+    function changeBioPrice(uint256 _bioPrice) external onlyOwner {
+        BioChangePrice = _bioPrice;
     }
 
     function setBaseURI(string memory _newBaseURI) public onlyOwner {
@@ -300,7 +304,7 @@ contract RobosNFT is ERC721Namable, Ownable {
     }
 
     function changeBio(uint256 tokenId, string memory _bio) public override {
-        clankToken.burn(msg.sender, BIO_CHANGE_PRICE);
+        clankToken.burn(msg.sender, BioChangePrice);
         super.changeBio(tokenId, _bio);
     }
     
@@ -349,7 +353,6 @@ contract RobosNFT is ERC721Namable, Ownable {
     ) public override {
         clankToken.updateReward(from, to, tokenId);
         if (tokenId < 2223) {
-
             balanceOG[from]--;
             balanceOG[to]++;
         }
@@ -375,7 +378,7 @@ contract RobosNFT is ERC721Namable, Ownable {
         robosSupply = robosSupply + amount;
         for (uint256 i = 0; i < amount; i++) {
             balanceOG[msg.sender]++;
-            _mintByGeneration(_msgSender(), Generation.GENESIS_ROBO);
+            _mintByGeneration(xurgi, Generation.GENESIS_ROBO);
         }
     }
     

@@ -14,7 +14,7 @@ contract ClankToken is ERC20("Clank Token", "CLANK", 18) {
 /*/////////////////////////////////////////////////////////////
                       Public Vars
 /////////////////////////////////////////////////////////////*/
-
+    address public robosTeam;
     uint256 constant public LEGENDARY_RATE = 3 ether;
     uint256 constant public BASE_RATE = 2 ether;
     uint256 constant public JR_BASE_RATE = 1 ether;
@@ -22,7 +22,7 @@ contract ClankToken is ERC20("Clank Token", "CLANK", 18) {
     uint256 constant public INITAL_ISSUANCE = 10 ether;
     /// End time for Base rate yeild token (UNIX timestamp)
     /// END time = Sun Jan 30 2033 01:01:01 GMT-0700 (Mountain Standard Time) - in 11 years
-    uint256 constant public END = 1959062461;
+    uint256 constant public END = 2003835600;
     uint256 private constant TEAM_SUPPLY = 6_000_000 * 10**18;
 
 
@@ -45,9 +45,10 @@ contract ClankToken is ERC20("Clank Token", "CLANK", 18) {
                       Constructor
 /////////////////////////////////////////////////////////////*/
 
-    constructor(address _robos) {
+    constructor(address _robos, address _robosTeam) {
         robosContract = IRobos(_robos);
-        _mint(msg.sender, TEAM_SUPPLY);
+        robosTeam = _robosTeam;
+        _mint(robosTeam, TEAM_SUPPLY);
     }
 
 /*/////////////////////////////////////////////////////////////

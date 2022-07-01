@@ -9,13 +9,13 @@ async function main() {
   console.log("Account balance:", (await deployer.getBalance()).toString());
   
   const RobosNFT = await ethers.getContractFactory("RobosNFT");
-  const robos = await RobosNFT.deploy("RobosNFT", "RBT", "ipfs://FakeURI/",  ["Bob", "Alice", "Charlie", "Dave"], [1, 2, 3, 4], "0x4BE50DAF1339DA3dA8dDC130F8CE54Aa10eF2dc6");
+  const robos = await RobosNFT.deploy("RobosNFT", "RBT", "ipfs://QmQ9Ge6X8GqRWrFh3Ny2nf4M1M6rvcnfpQTEUSZLuWFY5z/",  ["Bob"], [1], "0x4e96609B63D92881e7f8F78EDF42c8ec2AD19195");
   await robos.deployed();
 
   console.log("RobosNFT deployed to:", robos.address);
   
   const ClankToken = await hre.ethers.getContractFactory("ClankToken");
-  const clankToken = await ClankToken.deploy(robos.address);
+  const clankToken = await ClankToken.deploy(robos.address, "0x4e96609B63D92881e7f8F78EDF42c8ec2AD19195");
   await clankToken.deployed();
 
   console.log("Clank Token deployed to:", clankToken.address);
