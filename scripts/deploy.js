@@ -9,7 +9,7 @@ async function main() {
   console.log("Account balance:", (await deployer.getBalance()).toString());
   
   const RobosNFT = await ethers.getContractFactory("RobosNFT");
-  const robos = await RobosNFT.deploy("RobosNFT", "RBT", "ipfs://QmQ9Ge6X8GqRWrFh3Ny2nf4M1M6rvcnfpQTEUSZLuWFY5z/",  ["Bob"], [1], "0x4e96609B63D92881e7f8F78EDF42c8ec2AD19195");
+  const robos = await RobosNFT.deploy("RobosNFT", "RBT", "ipfs://QmQ9Ge6X8GqRWrFh3Ny2nf4M1M6rvcnfpQTEUSZLuWFY5z/",  ["Bob"], [1], "0x501a676687368905E74e1C1E30ae3D6AC5Ca2bBE");
   await robos.deployed();
 
   console.log("RobosNFT deployed to:", robos.address);
